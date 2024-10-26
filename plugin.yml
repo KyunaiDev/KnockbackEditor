@@ -1,0 +1,13 @@
+name: KnockbackEditor
+main: KnockbackEditor\Main
+version: 1.0.0
+api: [5.0.0]
+description: A plugin to customize knockback settings per world with a form-based interface.
+author: KyunaiDev
+website: https://poggit.pmmp.io
+
+
+permissions:
+  knockbackeditor.command.knockback:
+    description: Allows the player to open the knockback customization form
+    default: op
