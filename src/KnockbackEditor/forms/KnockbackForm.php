@@ -6,6 +6,7 @@ use jojoe77777\FormAPI\CustomForm;
 use jojoe77777\FormAPI\SimpleForm;
 use pocketmine\player\Player;
 use KnockbackEditor\Main;
+use pocketmine\utils\TextFormat;
 
 class KnockbackForm {
     private Main $plugin;
@@ -39,7 +40,7 @@ class KnockbackForm {
             "x" => 0.4,
             "y" => 0.4,
             "z" => 0.4,
-            "attack-delay" => 10 
+            "attack-delay" => 10
         ]);
 
         $form = new SimpleForm(function (Player $player, ?int $data): void {});
@@ -65,15 +66,17 @@ class KnockbackForm {
         ]);
 
         $form = new CustomForm(function (Player $player, ?array $data) use ($config): void {
-            if ($data !== null) {
+            if ($data !== null && count($data) >= 4) {
                 $config->set($this->worldName, [
                     "x" => floatval($data[0]),
                     "y" => floatval($data[1]),
                     "z" => floatval($data[2]),
-                    "attack-delay" => intval($data[3]) 
+                    "attack-delay" => intval($data[3])
                 ]);
                 $config->save();
-                $player->sendMessage("Knockback settings updated for {$this->worldName}.");
+                $player->sendMessage(TextFormat::GREEN . "Knockback settings updated for: {$this->worldName}.");
+            } else {
+                $player->sendMessage("Incomplete data provided. Please check the form inputs.");
             }
         });
 
@@ -81,7 +84,7 @@ class KnockbackForm {
         $form->addInput("Knockback X", "0.4", (string)$worldSettings["x"]);
         $form->addInput("Knockback Y", "0.4", (string)$worldSettings["y"]);
         $form->addInput("Knockback Z", "0.4", (string)$worldSettings["z"]);
-        $form->addInput("Attack Delay (ticks)", "10", (string)$worldSettings["attack-delay"]); 
+        $form->addInput("Attack Delay (ticks)", "10", (string)$worldSettings["attack-delay"]);
         $player->sendForm($form);
     }
 }
