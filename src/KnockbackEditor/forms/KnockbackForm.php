@@ -18,13 +18,14 @@ class KnockbackForm {
     }
 
     public function open(Player $player): void {
+        $plugin = $this->plugin;
         $worldName = $this->worldName;
-        $form = new class($this, $worldName) implements Form {
-            private KnockbackForm $parentForm;
+        $form = new class($plugin, $worldName) implements Form {
+            private Main $plugin;
             private string $worldName;
 
-            public function __construct(KnockbackForm $parentForm, string $worldName) {
-                $this->parentForm = $parentForm;
+            public function __construct(Main $plugin, string $worldName) {
+                $this->plugin = $plugin;
                 $this->worldName = $worldName;
             }
 
@@ -34,8 +35,14 @@ class KnockbackForm {
                     "title" => "Knockback - " . $this->worldName,
                     "content" => "Choose an option for knockback settings in " . $this->worldName,
                     "buttons" => [
-                        ["text" => "View Knockback Settings"],
-                        ["text" => "Edit Knockback Settings"]
+                        [
+                            "text" => "View Knockback Settings",
+                            "image" => ["type" => "path", "data" => "textures/ui/magnifyingGlass"]
+                        ],
+                        [
+                            "text" => "Edit Knockback Settings",
+                            "image" => ["type" => "path", "data" => "textures/ui/debug_glyph_color.png"]
+                        ]
                     ]
                 ];
             }
@@ -43,9 +50,9 @@ class KnockbackForm {
             public function handleResponse(Player $player, $data): void {
                 if ($data === null) return;
                 if ($data === 0) {
-                    $this->parentForm->showSettings($player);
+                    (new KnockbackForm($this->plugin, $this->worldName))->showSettings($player);
                 } elseif ($data === 1) {
-                    $this->parentForm->editSettings($player);
+                    (new KnockbackForm($this->plugin, $this->worldName))->editSettings($player);
                 }
             }
         };
@@ -63,13 +70,11 @@ class KnockbackForm {
         ]);
 
         $worldName = $this->worldName;
-        $form = new class($this, $worldSettings, $worldName) implements Form {
-            private KnockbackForm $parentForm;
+        $form = new class($worldSettings, $worldName) implements Form {
             private array $worldSettings;
             private string $worldName;
 
-            public function __construct(KnockbackForm $parentForm, array $worldSettings, string $worldName) {
-                $this->parentForm = $parentForm;
+            public function __construct(array $worldSettings, string $worldName) {
                 $this->worldSettings = $worldSettings;
                 $this->worldName = $worldName;
             }
@@ -84,7 +89,10 @@ class KnockbackForm {
                                  "Z: {$this->worldSettings['z']}\n" .
                                  "Attack Delay: {$this->worldSettings['attack-delay']} ticks",
                     "buttons" => [
-                        ["text" => "Close"]
+                        [
+                            "text" => "Close",
+                            "image" => ["type" => "path", "data" => "textures/ui/cancel.png"]
+                        ]
                     ]
                 ];
             }
@@ -106,15 +114,14 @@ class KnockbackForm {
             "attack-delay" => 10
         ]);
 
+        $plugin = $this->plugin;
         $worldName = $this->worldName;
-        $form = new class($this, $config, $worldSettings, $worldName) implements Form {
-            private KnockbackForm $parentForm;
+        $form = new class($config, $worldSettings, $worldName) implements Form {
             private Config $config;
             private array $worldSettings;
             private string $worldName;
 
-            public function __construct(KnockbackForm $parentForm, Config $config, array $worldSettings, string $worldName) {
-                $this->parentForm = $parentForm;
+            public function __construct(Config $config, array $worldSettings, string $worldName) {
                 $this->config = $config;
                 $this->worldSettings = $worldSettings;
                 $this->worldName = $worldName;

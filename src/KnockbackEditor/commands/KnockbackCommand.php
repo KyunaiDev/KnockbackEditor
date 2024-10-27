@@ -2,9 +2,9 @@
 
 namespace KnockbackEditor\commands;
 
-use jojoe77777\FormAPI\SimpleForm;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
+use pocketmine\form\Form;
 use pocketmine\player\Player;
 use KnockbackEditor\forms\KnockbackForm;
 use KnockbackEditor\Main;
@@ -29,25 +29,46 @@ class KnockbackCommand extends Command {
     }
 
     private function openWorldSelectionForm(Player $player): void {
-        $form = new SimpleForm(function (Player $p, ?int $data) use ($player): void { 
-            if ($data === null) {
-                return;
+        $form = new class($this->plugin) implements Form {
+            private Main $plugin;
+
+            public function __construct(Main $plugin) {
+                $this->plugin = $plugin;
             }
-            $worlds = $this->plugin->getServer()->getWorldManager()->getWorlds();
-            $worldList = array_values($worlds);
-            if (isset($worldList[$data])) {
-                $selectedWorld = $worldList[$data]->getFolderName();
-                (new KnockbackForm($this->plugin, $selectedWorld))->open($player);
-            } else {
-                $player->sendMessage("Invalid world selection.");
+
+            public function jsonSerialize(): array {
+                $content = "Select a world to view or edit knockback settings.";
+                $buttons = [];
+                $worlds = $this->plugin->getServer()->getWorldManager()->getWorlds();
+
+                foreach ($worlds as $world) {
+                    $buttons[] = [
+                        "text" => $world->getFolderName(),
+                        "image" => ["type" => "path", "data" => "textures/ui/op.png"]
+                    ];
+                }
+
+                return [
+                    "type" => "form",
+                    "title" => "Knockback Settings",
+                    "content" => $content,
+                    "buttons" => $buttons
+                ];
             }
-        });
-        $form->setTitle("Knockback Settings");
-        $form->setContent("Select a world to view or edit knockback settings.");
-        $worlds = $this->plugin->getServer()->getWorldManager()->getWorlds();
-        foreach ($worlds as $world) {
-            $form->addButton($world->getFolderName(), 0, "textures/ui/op.png");
-        }
+
+            public function handleResponse(Player $player, $data): void {
+                if ($data === null) return;
+
+                $worlds = array_values($this->plugin->getServer()->getWorldManager()->getWorlds());
+                if (isset($worlds[$data])) {
+                    $selectedWorld = $worlds[$data]->getFolderName();
+                    (new KnockbackForm($this->plugin, $selectedWorld))->open($player);
+                } else {
+                    $player->sendMessage("Invalid world selection.");
+                }
+            }
+        };
+
         $player->sendForm($form);
     }
 }

@@ -41,12 +41,16 @@ class KnockbackListener implements Listener {
                     return;
                 }
             }
-            
             $this->lastHitTime[$playerId] = $currentTime;
             $x = floatval($knockbackValues["x"] ?? 0.4);
             $y = floatval($knockbackValues["y"] ?? 0.4);
             $z = floatval($knockbackValues["z"] ?? 0.4);
-            $direction = $attacker->getPosition()->subtract($entity->getPosition())->normalize();
+            $direction = new Vector3(
+                $attacker->getPosition()->getX() - $entity->getPosition()->getX(),
+                $attacker->getPosition()->getY() - $entity->getPosition()->getY(),
+                $attacker->getPosition()->getZ() - $entity->getPosition()->getZ()
+            );
+            $direction = $direction->normalize();
             $knockbackVector = new Vector3($direction->x * $x, $y, $direction->z * $z);
             $entity->setMotion($entity->getMotion()->add($knockbackVector));
         }
