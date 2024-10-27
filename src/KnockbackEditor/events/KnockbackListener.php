@@ -52,7 +52,9 @@ class KnockbackListener implements Listener {
             );
             $direction = $direction->normalize();
             $knockbackVector = new Vector3($direction->x * $x, $y, $direction->z * $z);
-            $entity->setMotion($entity->getMotion()->add($knockbackVector));
+            $entity->setMotion(
+                $entity->getMotion()->add($knockbackVector->x, $knockbackVector->y, $knockbackVector->z)
+            );
         }
     }
 }
