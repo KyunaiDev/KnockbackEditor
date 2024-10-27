@@ -12,7 +12,7 @@ class Main extends PluginBase {
     private Config $knockbackConfig;
 
     public function onEnable(): void {
-        $this->saveDefaultConfig("knockback.yml");
+        $this->saveDefaultConfig();
         $this->knockbackConfig = new Config($this->getDataFolder() . "knockback.yml", Config::YAML);
         $this->registerCommands();
         $this->registerEvents();

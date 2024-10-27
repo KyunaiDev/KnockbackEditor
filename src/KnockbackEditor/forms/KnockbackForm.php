@@ -2,11 +2,11 @@
 
 namespace KnockbackEditor\forms;
 
-use jojoe77777\FormAPI\CustomForm;
-use jojoe77777\FormAPI\SimpleForm;
+use pocketmine\form\Form;
 use pocketmine\player\Player;
 use KnockbackEditor\Main;
 use pocketmine\utils\TextFormat;
+use pocketmine\utils\Config;
 
 class KnockbackForm {
     private Main $plugin;
@@ -18,23 +18,42 @@ class KnockbackForm {
     }
 
     public function open(Player $player): void {
-        $form = new SimpleForm(function (Player $player, ?int $data): void {
-            if ($data === null) return;
-            if ($data === 0) {
-                $this->showSettings($player);
-            } elseif ($data === 1) { 
-                $this->editSettings($player);
-            }
-        });
+        $worldName = $this->worldName;
+        $form = new class($this, $worldName) implements Form {
+            private KnockbackForm $parentForm;
+            private string $worldName;
 
-        $form->setTitle("Knockback - {$this->worldName}");
-        $form->setContent("Choose an option for knockback settings in {$this->worldName}");
-        $form->addButton("View Knockback Settings", 0, "textures/ui/magnifyingGlass");
-        $form->addButton("Edit Knockback Settings", 0, "textures/ui/debug_glyph_color.png");
+            public function __construct(KnockbackForm $parentForm, string $worldName) {
+                $this->parentForm = $parentForm;
+                $this->worldName = $worldName;
+            }
+
+            public function jsonSerialize(): array {
+                return [
+                    "type" => "form",
+                    "title" => "Knockback - " . $this->worldName,
+                    "content" => "Choose an option for knockback settings in " . $this->worldName,
+                    "buttons" => [
+                        ["text" => "View Knockback Settings"],
+                        ["text" => "Edit Knockback Settings"]
+                    ]
+                ];
+            }
+
+            public function handleResponse(Player $player, $data): void {
+                if ($data === null) return;
+                if ($data === 0) {
+                    $this->parentForm->showSettings($player);
+                } elseif ($data === 1) {
+                    $this->parentForm->editSettings($player);
+                }
+            }
+        };
+        
         $player->sendForm($form);
     }
 
-    private function showSettings(Player $player): void {
+    public function showSettings(Player $player): void {
         $config = $this->plugin->getKnockbackConfig();
         $worldSettings = $config->get($this->worldName, [
             "x" => 0.4,
@@ -43,16 +62,38 @@ class KnockbackForm {
             "attack-delay" => 10
         ]);
 
-        $form = new SimpleForm(function (Player $player, ?int $data): void {});
-        $form->setTitle("Knockback Settings - {$this->worldName}");
-        $form->setContent(
-            "Current knockback values:\n" .
-            "X: {$worldSettings['x']}\n" .
-            "Y: {$worldSettings['y']}\n" .
-            "Z: {$worldSettings['z']}\n" .
-            "Attack Delay: {$worldSettings['attack-delay']} ticks"
-        );
-        $form->addButton("Close");
+        $worldName = $this->worldName;
+        $form = new class($this, $worldSettings, $worldName) implements Form {
+            private KnockbackForm $parentForm;
+            private array $worldSettings;
+            private string $worldName;
+
+            public function __construct(KnockbackForm $parentForm, array $worldSettings, string $worldName) {
+                $this->parentForm = $parentForm;
+                $this->worldSettings = $worldSettings;
+                $this->worldName = $worldName;
+            }
+
+            public function jsonSerialize(): array {
+                return [
+                    "type" => "form",
+                    "title" => "Knockback Settings - " . $this->worldName,
+                    "content" => "Current knockback values:\n" .
+                                 "X: {$this->worldSettings['x']}\n" .
+                                 "Y: {$this->worldSettings['y']}\n" .
+                                 "Z: {$this->worldSettings['z']}\n" .
+                                 "Attack Delay: {$this->worldSettings['attack-delay']} ticks",
+                    "buttons" => [
+                        ["text" => "Close"]
+                    ]
+                ];
+            }
+
+            public function handleResponse(Player $player, $data): void {
+                // Close form; no action needed
+            }
+        };
+        
         $player->sendForm($form);
     }
 
@@ -65,26 +106,49 @@ class KnockbackForm {
             "attack-delay" => 10
         ]);
 
-        $form = new CustomForm(function (Player $player, ?array $data) use ($config): void {
-            if ($data !== null && count($data) >= 4) {
-                $config->set($this->worldName, [
-                    "x" => floatval($data[0]),
-                    "y" => floatval($data[1]),
-                    "z" => floatval($data[2]),
-                    "attack-delay" => intval($data[3])
-                ]);
-                $config->save();
-                $player->sendMessage(TextFormat::GREEN . "Knockback settings updated for: {$this->worldName}.");
-            } else {
-                $player->sendMessage("Incomplete data provided. Please check the form inputs.");
-            }
-        });
+        $worldName = $this->worldName;
+        $form = new class($this, $config, $worldSettings, $worldName) implements Form {
+            private KnockbackForm $parentForm;
+            private Config $config;
+            private array $worldSettings;
+            private string $worldName;
 
-        $form->setTitle("Edit Knockback - {$this->worldName}");
-        $form->addInput("Knockback X", "0.4", (string)$worldSettings["x"]);
-        $form->addInput("Knockback Y", "0.4", (string)$worldSettings["y"]);
-        $form->addInput("Knockback Z", "0.4", (string)$worldSettings["z"]);
-        $form->addInput("Attack Delay (ticks)", "10", (string)$worldSettings["attack-delay"]);
+            public function __construct(KnockbackForm $parentForm, Config $config, array $worldSettings, string $worldName) {
+                $this->parentForm = $parentForm;
+                $this->config = $config;
+                $this->worldSettings = $worldSettings;
+                $this->worldName = $worldName;
+            }
+
+            public function jsonSerialize(): array {
+                return [
+                    "type" => "custom_form",
+                    "title" => "Edit Knockback - " . $this->worldName,
+                    "content" => [
+                        ["type" => "input", "text" => "Knockback X", "default" => (string)$this->worldSettings["x"]],
+                        ["type" => "input", "text" => "Knockback Y", "default" => (string)$this->worldSettings["y"]],
+                        ["type" => "input", "text" => "Knockback Z", "default" => (string)$this->worldSettings["z"]],
+                        ["type" => "input", "text" => "Attack Delay (ticks)", "default" => (string)$this->worldSettings["attack-delay"]]
+                    ]
+                ];
+            }
+
+            public function handleResponse(Player $player, $data): void {
+                if ($data !== null && count($data) >= 4) {
+                    $this->config->set($this->worldName, [
+                        "x" => floatval($data[0]),
+                        "y" => floatval($data[1]),
+                        "z" => floatval($data[2]),
+                        "attack-delay" => intval($data[3])
+                    ]);
+                    $this->config->save();
+                    $player->sendMessage(TextFormat::GREEN . "Knockback settings updated for: " . $this->worldName . ".");
+                } else {
+                    $player->sendMessage(TextFormat::RED . "Incomplete data provided. Please check the form inputs.");
+                }
+            }
+        };
+
         $player->sendForm($form);
     }
 }

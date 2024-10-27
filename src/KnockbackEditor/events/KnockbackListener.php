@@ -6,10 +6,11 @@ use pocketmine\event\Listener;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\player\Player;
 use KnockbackEditor\Main;
+use pocketmine\math\Vector3;
 
 class KnockbackListener implements Listener {
     private Main $plugin;
-    private array $lastHitTime = []; // Store the last hit time for each player
+    private array $lastHitTime = [];
 
     public function __construct(Main $plugin) {
         $this->plugin = $plugin;
@@ -25,11 +26,13 @@ class KnockbackListener implements Listener {
         $world = $entity->getWorld();
         $worldName = $world->getFolderName();
         $config = $this->plugin->getKnockbackConfig();
+        
         if ($config->exists($worldName)) {
             $knockbackValues = $config->get($worldName);
             $attackDelay = intval($knockbackValues['attack-delay'] ?? 10);
             $currentTime = microtime(true);
             $playerId = $entity->getUniqueId()->toString();
+            
             if (isset($this->lastHitTime[$playerId])) {
                 $lastHit = $this->lastHitTime[$playerId];
                 $elapsedTicks = ($currentTime - $lastHit) * 20;
@@ -38,8 +41,14 @@ class KnockbackListener implements Listener {
                     return;
                 }
             }
+            
             $this->lastHitTime[$playerId] = $currentTime;
-            $event->setKnockBack(floatval($knockbackValues["x"]), floatval($knockbackValues["y"]), floatval($knockbackValues["z"]));
+            $x = floatval($knockbackValues["x"] ?? 0.4);
+            $y = floatval($knockbackValues["y"] ?? 0.4);
+            $z = floatval($knockbackValues["z"] ?? 0.4);
+            $direction = $attacker->getPosition()->subtract($entity->getPosition())->normalize();
+            $knockbackVector = new Vector3($direction->x * $x, $y, $direction->z * $z);
+            $entity->setMotion($entity->getMotion()->add($knockbackVector));
         }
     }
 }

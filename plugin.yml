@@ -6,7 +6,6 @@ description: A plugin to customize knockback settings per world with a form-base
 author: KyunaiDev
 website: https://poggit.pmmp.io
 
-
 permissions:
   knockbackeditor.command.knockback:
     description: Allows the player to open the knockback customization form
